@@ -8,11 +8,12 @@
         android:label="mapmemo"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
-        <!-- TODO: Google Cloud Console'dan aldığınız Maps SDK for Android
-             anahtarını buraya girin. Bkz. README.md "Google Maps kurulumu". -->
+        <!-- Maps SDK for Android anahtarı. Bu anahtarı Google Cloud Console'da
+             mutlaka kısıtlayın (Application restrictions → Android apps:
+             com.mapmemo.mapmemo + SHA-1). Bkz. README.md "Google Maps kurulumu". -->
         <meta-data
             android:name="com.google.android.geo.API_KEY"
-            android:value="REPLACE_WITH_ANDROID_MAPS_API_KEY"/>
+            android:value="AIzaSyBZ7TvoRT_AInbW0yxTBDJ1BTv95wDV-i4"/>
         <activity
             android:name=".MainActivity"
             android:exported="true"
