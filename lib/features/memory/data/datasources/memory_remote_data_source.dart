@@ -19,6 +19,25 @@ abstract class MemoryRemoteDataSource {
     required List<File> imageFiles,
     File? videoFile,
   });
+
+  Future<MemoryModel> updateMemory({
+    required String memoryId,
+    required String ownerId,
+    required String title,
+    required String note,
+    required double rating,
+    required List<String> keptPhotoUrls,
+    required List<String> removedPhotoUrls,
+    required List<File> newImageFiles,
+    String? keptVideoUrl,
+    String? removedVideoUrl,
+    File? newVideoFile,
+  });
+
+  Future<void> deleteMemory({
+    required String ownerId,
+    required String memoryId,
+  });
 }
 
 class MemoryRemoteDataSourceImpl implements MemoryRemoteDataSource {
@@ -99,6 +118,99 @@ class MemoryRemoteDataSourceImpl implements MemoryRemoteDataSource {
       return MemoryModel.fromFirestore(saved);
     } on FirebaseException catch (e) {
       throw AppException(e.message ?? 'Anı kaydedilirken bir hata oluştu.');
+    }
+  }
+
+  @override
+  Future<MemoryModel> updateMemory({
+    required String memoryId,
+    required String ownerId,
+    required String title,
+    required String note,
+    required double rating,
+    required List<String> keptPhotoUrls,
+    required List<String> removedPhotoUrls,
+    required List<File> newImageFiles,
+    String? keptVideoUrl,
+    String? removedVideoUrl,
+    File? newVideoFile,
+  }) async {
+    try {
+      for (final url in removedPhotoUrls) {
+        await _deleteByUrl(url);
+      }
+
+      final photoUrls = [...keptPhotoUrls];
+      for (var i = 0; i < newImageFiles.length; i++) {
+        photoUrls.add(
+          await _upload(
+            ownerId: ownerId,
+            memoryId: memoryId,
+            file: newImageFiles[i],
+            fileName:
+                'photo_${DateTime.now().microsecondsSinceEpoch}_$i'
+                '${_extensionOf(newImageFiles[i].path)}',
+          ),
+        );
+      }
+
+      String? videoUrl;
+      if (newVideoFile != null) {
+        if (removedVideoUrl != null) {
+          await _deleteByUrl(removedVideoUrl);
+        }
+        videoUrl = await _upload(
+          ownerId: ownerId,
+          memoryId: memoryId,
+          file: newVideoFile,
+          fileName:
+              'video_${DateTime.now().microsecondsSinceEpoch}'
+              '${_extensionOf(newVideoFile.path)}',
+        );
+      } else {
+        if (removedVideoUrl != null) {
+          await _deleteByUrl(removedVideoUrl);
+        }
+        videoUrl = keptVideoUrl;
+      }
+
+      final docRef = _memories.doc(memoryId);
+      await docRef.update({
+        'title': title,
+        'note': note,
+        'rating': rating,
+        'photoUrls': photoUrls,
+        'videoUrl': videoUrl,
+      });
+
+      final saved = await docRef.get();
+      return MemoryModel.fromFirestore(saved);
+    } on FirebaseException catch (e) {
+      throw AppException(e.message ?? 'Anı güncellenirken bir hata oluştu.');
+    }
+  }
+
+  @override
+  Future<void> deleteMemory({
+    required String ownerId,
+    required String memoryId,
+  }) async {
+    try {
+      final folderRef = _storage.ref('memories/$ownerId/$memoryId');
+      final listing = await folderRef.listAll();
+      await Future.wait(listing.items.map((item) => item.delete()));
+      await _memories.doc(memoryId).delete();
+    } on FirebaseException catch (e) {
+      throw AppException(e.message ?? 'Anı silinirken bir hata oluştu.');
+    }
+  }
+
+  Future<void> _deleteByUrl(String url) async {
+    try {
+      await _storage.refFromURL(url).delete();
+    } on FirebaseException {
+      // Dosya zaten silinmişse (ör. daha önceki bir denemede) sessizce
+      // devam et — kullanıcının işlemi engellenmemeli.
     }
   }
 

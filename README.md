@@ -27,8 +27,8 @@ lib/
       presentation/ # MapScreen: google_maps_flutter + uzun basma/marker/konum
     memory/
       domain/       # Memory (entity), MemoryRepository (arayüz), use case'ler
-      data/         # Firestore (`memories` koleksiyonu) + Storage upload
-      presentation/ # MemoryProvider, AddMemorySheet (BottomSheet formu), MemoryListScreen
+      data/         # Firestore (`memories` koleksiyonu) + Storage upload/silme
+      presentation/ # MemoryProvider, Add/EditMemorySheet, MemoryList/DetailScreen
   app.dart          # MaterialApp + MultiProvider kökü
   firebase_options.dart  # `flutterfire configure` ile YENİDEN oluşturulmalı
   main.dart         # Firebase/GoogleSignIn init + servis kaydı + runApp
@@ -155,5 +155,8 @@ flutter test
 4. ✅ Mekan ekleme formu (BottomSheet: ad, not, foto/video, 5 yıldız puan) +
    Firestore/Storage kaydı (`memories` koleksiyonu)
 5. ✅ Kaydedilenler listesi + haritada seçilen konuma ışınlanma
-6. ⏭️ Anı detay ekranı (tüm fotoğraflar, video oynatma, düzenleme/silme)
+6. ✅ Anı detay ekranı (foto karuseli, video oynatma, düzenleme/silme)
+   — listeden veya haritadaki markera dokununca açılır; düzenlemede
+   fotoğraf/video ekleme-çıkarma da desteklenir (Storage'daki dosyalar
+   silme/değiştirmede otomatik temizlenir)
 7. ⏭️ Firebase App Check, offline önbellekleme, arama/filtreleme gibi iyileştirmeler

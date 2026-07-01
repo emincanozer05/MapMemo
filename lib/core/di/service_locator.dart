@@ -18,6 +18,8 @@ import '../../features/memory/data/datasources/memory_remote_data_source.dart';
 import '../../features/memory/data/repositories/memory_repository_impl.dart';
 import '../../features/memory/domain/repositories/memory_repository.dart';
 import '../../features/memory/domain/usecases/add_memory.dart';
+import '../../features/memory/domain/usecases/delete_memory.dart';
+import '../../features/memory/domain/usecases/update_memory.dart';
 import '../../features/memory/domain/usecases/watch_memories.dart';
 import '../../features/memory/presentation/providers/memory_provider.dart';
 
@@ -57,8 +59,15 @@ void setupServiceLocator() {
   sl.registerLazySingleton<MemoryRepository>(() => MemoryRepositoryImpl(sl()));
   sl.registerLazySingleton(() => WatchMemories(sl()));
   sl.registerLazySingleton(() => AddMemory(sl()));
+  sl.registerLazySingleton(() => UpdateMemory(sl()));
+  sl.registerLazySingleton(() => DeleteMemory(sl()));
 
   sl.registerFactory(
-    () => MemoryProvider(watchMemories: sl(), addMemory: sl()),
+    () => MemoryProvider(
+      watchMemories: sl(),
+      addMemory: sl(),
+      updateMemory: sl(),
+      deleteMemory: sl(),
+    ),
   );
 }

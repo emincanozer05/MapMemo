@@ -7,6 +7,8 @@ import 'package:mapmemo/features/auth/domain/entities/app_user.dart';
 import 'package:mapmemo/features/memory/domain/entities/memory.dart';
 import 'package:mapmemo/features/memory/domain/repositories/memory_repository.dart';
 import 'package:mapmemo/features/memory/domain/usecases/add_memory.dart';
+import 'package:mapmemo/features/memory/domain/usecases/delete_memory.dart';
+import 'package:mapmemo/features/memory/domain/usecases/update_memory.dart';
 import 'package:mapmemo/features/memory/domain/usecases/watch_memories.dart';
 import 'package:mapmemo/features/memory/presentation/providers/memory_provider.dart';
 
@@ -14,6 +16,8 @@ class FakeMemoryRepository implements MemoryRepository {
   final _controller = StreamController<List<Memory>>.broadcast();
   List<Memory> memoriesToEmit = const [];
   String? lastAddMemoryOwnerId;
+  String? lastUpdateMemoryId;
+  String? lastDeleteMemoryId;
   bool shouldThrow = false;
 
   @override
@@ -49,6 +53,48 @@ class FakeMemoryRepository implements MemoryRepository {
       createdAt: DateTime.now(),
     );
   }
+
+  @override
+  Future<Memory> updateMemory({
+    required String memoryId,
+    required String ownerId,
+    required String title,
+    required String note,
+    required double rating,
+    required List<String> keptPhotoUrls,
+    required List<String> removedPhotoUrls,
+    required List<File> newImageFiles,
+    String? keptVideoUrl,
+    String? removedVideoUrl,
+    File? newVideoFile,
+  }) async {
+    lastUpdateMemoryId = memoryId;
+    if (shouldThrow) {
+      throw const AppException('Anı güncellenemedi.');
+    }
+    return Memory(
+      id: memoryId,
+      ownerId: ownerId,
+      title: title,
+      note: note,
+      latitude: 0,
+      longitude: 0,
+      rating: rating,
+      photoUrls: keptPhotoUrls,
+      createdAt: DateTime.now(),
+    );
+  }
+
+  @override
+  Future<void> deleteMemory({
+    required String ownerId,
+    required String memoryId,
+  }) async {
+    lastDeleteMemoryId = memoryId;
+    if (shouldThrow) {
+      throw const AppException('Anı silinemedi.');
+    }
+  }
 }
 
 void main() {
@@ -60,6 +106,8 @@ void main() {
     provider = MemoryProvider(
       watchMemories: WatchMemories(repository),
       addMemory: AddMemory(repository),
+      updateMemory: UpdateMemory(repository),
+      deleteMemory: DeleteMemory(repository),
     );
   });
 
@@ -156,5 +204,64 @@ void main() {
 
     expect(result, isFalse);
     expect(provider.errorMessage, 'Anı kaydedilemedi.');
+  });
+
+  test(
+    'updateMemory forwards the id and clears the error on success',
+    () async {
+      provider.updateUser(const AppUser(uid: 'u1', email: 'a@b.com'));
+      await Future<void>.delayed(Duration.zero);
+
+      final result = await provider.updateMemory(
+        memoryId: 'm1',
+        title: 'Güncel ad',
+        note: '',
+        rating: 5,
+        keptPhotoUrls: const [],
+        removedPhotoUrls: const [],
+        newImageFiles: const [],
+      );
+
+      expect(result, isTrue);
+      expect(repository.lastUpdateMemoryId, 'm1');
+      expect(provider.errorMessage, isNull);
+    },
+  );
+
+  test('updateMemory surfaces repository failures as errorMessage', () async {
+    repository.shouldThrow = true;
+    provider.updateUser(const AppUser(uid: 'u1', email: 'a@b.com'));
+    await Future<void>.delayed(Duration.zero);
+
+    final result = await provider.updateMemory(
+      memoryId: 'm1',
+      title: 'Güncel ad',
+      note: '',
+      rating: 5,
+      keptPhotoUrls: const [],
+      removedPhotoUrls: const [],
+      newImageFiles: const [],
+    );
+
+    expect(result, isFalse);
+    expect(provider.errorMessage, 'Anı güncellenemedi.');
+  });
+
+  test('deleteMemory fails when no user is signed in', () async {
+    final result = await provider.deleteMemory('m1');
+
+    expect(result, isFalse);
+    expect(provider.errorMessage, isNotNull);
+  });
+
+  test('deleteMemory forwards the id on success', () async {
+    provider.updateUser(const AppUser(uid: 'u1', email: 'a@b.com'));
+    await Future<void>.delayed(Duration.zero);
+
+    final result = await provider.deleteMemory('m1');
+
+    expect(result, isTrue);
+    expect(repository.lastDeleteMemoryId, 'm1');
+    expect(provider.errorMessage, isNull);
   });
 }

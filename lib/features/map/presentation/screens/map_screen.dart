@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 
 import '../../../memory/domain/entities/memory.dart';
 import '../../../memory/presentation/providers/memory_provider.dart';
+import '../../../memory/presentation/screens/memory_detail_screen.dart';
 import '../../../memory/presentation/widgets/add_memory_sheet.dart';
 
 /// Interactive map: shows every saved memory as a marker, lets the user
@@ -82,6 +83,14 @@ class MapScreenState extends State<MapScreen> {
     setState(() => _pendingMarkerPosition = null);
   }
 
+  void _openMemoryDetail(Memory memory) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => MemoryDetailScreen(memoryId: memory.id),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final memories = context.watch<MemoryProvider>().memories;
@@ -95,6 +104,7 @@ class MapScreenState extends State<MapScreen> {
             title: memory.title,
             snippet: memory.note.isEmpty ? null : memory.note,
           ),
+          onTap: () => _openMemoryDetail(memory),
         ),
       if (_pendingMarkerPosition case final pending?)
         Marker(

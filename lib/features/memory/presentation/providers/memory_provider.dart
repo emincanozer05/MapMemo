@@ -7,6 +7,8 @@ import '../../../../core/error/app_exceptions.dart';
 import '../../../auth/domain/entities/app_user.dart';
 import '../../domain/entities/memory.dart';
 import '../../domain/usecases/add_memory.dart';
+import '../../domain/usecases/delete_memory.dart';
+import '../../domain/usecases/update_memory.dart';
 import '../../domain/usecases/watch_memories.dart';
 
 /// Holds the signed-in user's memories and exposes the add-memory action.
@@ -18,11 +20,17 @@ class MemoryProvider extends ChangeNotifier {
   MemoryProvider({
     required WatchMemories watchMemories,
     required AddMemory addMemory,
+    required UpdateMemory updateMemory,
+    required DeleteMemory deleteMemory,
   }) : _watchMemories = watchMemories,
-       _addMemory = addMemory;
+       _addMemory = addMemory,
+       _updateMemory = updateMemory,
+       _deleteMemory = deleteMemory;
 
   final WatchMemories _watchMemories;
   final AddMemory _addMemory;
+  final UpdateMemory _updateMemory;
+  final DeleteMemory _deleteMemory;
 
   StreamSubscription<List<Memory>>? _subscription;
   String? _ownerId;
@@ -95,6 +103,81 @@ class MemoryProvider extends ChangeNotifier {
       return false;
     } catch (_) {
       _errorMessage = 'Anı kaydedilirken beklenmeyen bir hata oluştu.';
+      return false;
+    } finally {
+      _isSaving = false;
+      notifyListeners();
+    }
+  }
+
+  Future<bool> updateMemory({
+    required String memoryId,
+    required String title,
+    required String note,
+    required double rating,
+    required List<String> keptPhotoUrls,
+    required List<String> removedPhotoUrls,
+    required List<File> newImageFiles,
+    String? keptVideoUrl,
+    String? removedVideoUrl,
+    File? newVideoFile,
+  }) async {
+    final ownerId = _ownerId;
+    if (ownerId == null) {
+      _errorMessage = 'Güncellemek için önce giriş yapmalısınız.';
+      notifyListeners();
+      return false;
+    }
+
+    _isSaving = true;
+    _errorMessage = null;
+    notifyListeners();
+    try {
+      await _updateMemory(
+        memoryId: memoryId,
+        ownerId: ownerId,
+        title: title,
+        note: note,
+        rating: rating,
+        keptPhotoUrls: keptPhotoUrls,
+        removedPhotoUrls: removedPhotoUrls,
+        newImageFiles: newImageFiles,
+        keptVideoUrl: keptVideoUrl,
+        removedVideoUrl: removedVideoUrl,
+        newVideoFile: newVideoFile,
+      );
+      return true;
+    } on AppException catch (e) {
+      _errorMessage = e.message;
+      return false;
+    } catch (_) {
+      _errorMessage = 'Anı güncellenirken beklenmeyen bir hata oluştu.';
+      return false;
+    } finally {
+      _isSaving = false;
+      notifyListeners();
+    }
+  }
+
+  Future<bool> deleteMemory(String memoryId) async {
+    final ownerId = _ownerId;
+    if (ownerId == null) {
+      _errorMessage = 'Silmek için önce giriş yapmalısınız.';
+      notifyListeners();
+      return false;
+    }
+
+    _isSaving = true;
+    _errorMessage = null;
+    notifyListeners();
+    try {
+      await _deleteMemory(ownerId: ownerId, memoryId: memoryId);
+      return true;
+    } on AppException catch (e) {
+      _errorMessage = e.message;
+      return false;
+    } catch (_) {
+      _errorMessage = 'Anı silinirken beklenmeyen bir hata oluştu.';
       return false;
     } finally {
       _isSaving = false;

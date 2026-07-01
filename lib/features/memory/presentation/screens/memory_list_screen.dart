@@ -4,10 +4,12 @@ import 'package:provider/provider.dart';
 
 import '../../domain/entities/memory.dart';
 import '../providers/memory_provider.dart';
+import 'memory_detail_screen.dart';
 
-/// Lists every place the user has saved. Tapping an entry hands the
-/// [Memory] up to [onMemorySelected] (wired by [HomeShell] to switch to the
-/// map tab and animate the camera there).
+/// Lists every place the user has saved. Tapping a card opens its detail
+/// screen; the map-pin button instead hands the [Memory] up to
+/// [onMemorySelected] (wired by [HomeShell] to switch to the map tab and
+/// animate the camera there).
 class MemoryListScreen extends StatelessWidget {
   const MemoryListScreen({super.key, required this.onMemorySelected});
 
@@ -53,7 +55,12 @@ class MemoryListScreen extends StatelessWidget {
         final memory = provider.memories[index];
         return _MemoryCard(
           memory: memory,
-          onTap: () => onMemorySelected(memory),
+          onOpenDetail: () => Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => MemoryDetailScreen(memoryId: memory.id),
+            ),
+          ),
+          onShowOnMap: () => onMemorySelected(memory),
         );
       },
     );
@@ -61,17 +68,22 @@ class MemoryListScreen extends StatelessWidget {
 }
 
 class _MemoryCard extends StatelessWidget {
-  const _MemoryCard({required this.memory, required this.onTap});
+  const _MemoryCard({
+    required this.memory,
+    required this.onOpenDetail,
+    required this.onShowOnMap,
+  });
 
   final Memory memory;
-  final VoidCallback onTap;
+  final VoidCallback onOpenDetail;
+  final VoidCallback onShowOnMap;
 
   @override
   Widget build(BuildContext context) {
     return Card(
       clipBehavior: Clip.antiAlias,
       child: InkWell(
-        onTap: onTap,
+        onTap: onOpenDetail,
         child: Padding(
           padding: const EdgeInsets.all(12),
           child: Row(
@@ -115,7 +127,11 @@ class _MemoryCard extends StatelessWidget {
                   ],
                 ),
               ),
-              const Icon(Icons.chevron_right),
+              IconButton(
+                tooltip: 'Haritada göster',
+                icon: const Icon(Icons.map_outlined),
+                onPressed: onShowOnMap,
+              ),
             ],
           ),
         ),
