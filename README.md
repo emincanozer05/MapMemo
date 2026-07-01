@@ -24,19 +24,29 @@ lib/
     home/
       presentation/ # BottomNavigationBar kabuğu (HomeShell)
     map/
-      presentation/ # (yer tutucu) İnteraktif harita — sıradaki adım
+      presentation/ # MapScreen: google_maps_flutter + uzun basma/marker/konum
     memory/
-      presentation/ # (yer tutucu) Kaydedilenler listesi — sıradaki adım
+      domain/       # Memory (entity), MemoryRepository (arayüz), use case'ler
+      data/         # Firestore (`memories` koleksiyonu) + Storage upload
+      presentation/ # MemoryProvider, AddMemorySheet (BottomSheet formu), MemoryListScreen
   app.dart          # MaterialApp + MultiProvider kökü
   firebase_options.dart  # `flutterfire configure` ile YENİDEN oluşturulmalı
   main.dart         # Firebase/GoogleSignIn init + servis kaydı + runApp
+firestore.rules      # `memories` koleksiyonu için sahiplik kuralları
+storage.rules         # `memories/{ownerId}/...` için sahiplik kuralları
 ```
 
 Her feature kendi `domain` (saf Dart, Firebase'den habersiz),
 `data` (Firebase implementasyonu) ve `presentation` (widget + provider)
-katmanlarına sahiptir. `map` ve `memory` modüllerinin domain/data katmanları
-bir sonraki adımlarda eklenecek; şu an yalnızca `HomeShell` içinden
-gezinilebilen yer tutucu ekranları var.
+katmanlarına sahiptir.
+
+`MemoryProvider`, `AuthProvider`'a bağlı bir `ChangeNotifierProxyProvider`
+ile besleniyor: giriş yapan kullanıcı değiştiğinde otomatik olarak o
+kullanıcının `memories` koleksiyonuna yeniden abone olur (`app.dart`).
+
+`MapScreen`'in `State` sınıfı bilerek public (`MapScreenState`): `HomeShell`
+"Kaydedilenler" listesinden bir anıya dokunulduğunda `GlobalKey` üzerinden
+haritaya erişip kamerayı o konuma taşıyabiliyor (`focusOnMemory`).
 
 ## Paketler (`pubspec.yaml`)
 
@@ -100,16 +110,30 @@ otomatik olarak kullandığı bir "web" OAuth istemcisi oluşturur.
   yer tutucusu var). `flutterfire configure` bu adımı bazen otomatik yapar,
   yapmıyorsa elle güncelleyin.
 
-### 4. Google Maps (sıradaki adımda kullanılacak)
+### 4. Google Maps
 
 - **Android**: `android/app/src/main/AndroidManifest.xml` içindeki
   `com.google.android.geo.API_KEY` meta-data değerini Google Cloud
   Console'dan aldığınız "Maps SDK for Android" anahtarıyla değiştirin.
-- **iOS**: `ios/Runner/AppDelegate.swift` içine
-  `GMSServices.provideAPIKey("YOUR_KEY")` satırını eklemeniz gerekecek
-  (harita modülü eklenirken birlikte yapılacak).
+- **iOS**: `ios/Runner/AppDelegate.swift` içindeki
+  `GMSServices.provideAPIKey("REPLACE_WITH_IOS_MAPS_API_KEY")` satırını
+  "Maps SDK for iOS" anahtarınızla güncelleyin.
+- Google Cloud Console'da hem **Maps SDK for Android** hem de
+  **Maps SDK for iOS**'u etkinleştirmeniz gerekir.
 
-### 5. Çalıştırma
+### 5. Firestore / Storage güvenlik kuralları
+
+Yeni bir Firebase projesi varsayılan olarak tüm okuma/yazmayı reddeder.
+Depodaki `firestore.rules` ve `storage.rules` dosyaları her kullanıcının
+yalnızca kendi `memories` belgelerine/dosyalarına erişebilmesini sağlar.
+Firebase Console → Firestore/Storage → Rules sekmesinden yapıştırabilir,
+veya Firebase CLI kuruluysa şu şekilde deploy edebilirsiniz:
+
+```bash
+firebase deploy --only firestore:rules,storage:rules
+```
+
+### 6. Çalıştırma
 
 ```bash
 flutter run   # bağlı bir Android/iOS cihaz veya emülatör ile
@@ -126,6 +150,10 @@ flutter test
 
 1. ✅ Proje iskeleti, `pubspec.yaml`, Clean Architecture klasör yapısı
 2. ✅ Google ile Giriş (Firebase Auth + `google_sign_in`)
-3. ⏭️ İnteraktif harita (`google_maps_flutter`) + uzun basarak marker ekleme
-4. ⏭️ Mekan ekleme formu (BottomSheet: ad, not, foto/video, 5 yıldız puan) + Firestore/Storage kaydı
-5. ⏭️ Kaydedilenler listesi + haritada seçilen konuma ışınlanma
+3. ✅ İnteraktif harita (`google_maps_flutter`): uzun basarak marker ekleme,
+   markera dokununca form açılma, mevcut konuma dönme
+4. ✅ Mekan ekleme formu (BottomSheet: ad, not, foto/video, 5 yıldız puan) +
+   Firestore/Storage kaydı (`memories` koleksiyonu)
+5. ✅ Kaydedilenler listesi + haritada seçilen konuma ışınlanma
+6. ⏭️ Anı detay ekranı (tüm fotoğraflar, video oynatma, düzenleme/silme)
+7. ⏭️ Firebase App Check, offline önbellekleme, arama/filtreleme gibi iyileştirmeler

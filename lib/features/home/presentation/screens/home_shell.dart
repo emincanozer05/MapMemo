@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../map/presentation/screens/map_screen.dart';
+import '../../../memory/domain/entities/memory.dart';
 import '../../../memory/presentation/screens/memory_list_screen.dart';
 
 /// Bottom-navigation shell shown once the user is authenticated. Switches
@@ -17,9 +18,23 @@ class HomeShell extends StatefulWidget {
 
 class _HomeShellState extends State<HomeShell> {
   int _index = 0;
+  final GlobalKey<MapScreenState> _mapKey = GlobalKey<MapScreenState>();
 
-  static const List<Widget> _screens = [MapScreen(), MemoryListScreen()];
+  late final List<Widget> _screens = [
+    MapScreen(key: _mapKey),
+    MemoryListScreen(onMemorySelected: _focusMemoryOnMap),
+  ];
+
   static const List<String> _titles = ['Harita', 'Kaydedilenler'];
+
+  void _focusMemoryOnMap(Memory memory) {
+    setState(() => _index = 0);
+    // Wait for the IndexedStack to show the map tab before moving the
+    // camera, otherwise the animation runs on a screen that isn't visible.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _mapKey.currentState?.focusOnMemory(memory);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
