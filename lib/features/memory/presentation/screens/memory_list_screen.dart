@@ -6,14 +6,40 @@ import '../../domain/entities/memory.dart';
 import '../providers/memory_provider.dart';
 import 'memory_detail_screen.dart';
 
-/// Lists every place the user has saved. Tapping a card opens its detail
-/// screen; the map-pin button instead hands the [Memory] up to
-/// [onMemorySelected] (wired by [HomeShell] to switch to the map tab and
-/// animate the camera there).
-class MemoryListScreen extends StatelessWidget {
+/// Lists every place the user has saved, with a search box and a
+/// minimum-rating filter. Tapping a card opens its detail screen; the
+/// map-pin button instead hands the [Memory] up to [onMemorySelected]
+/// (wired by [HomeShell] to switch to the map tab and animate the camera
+/// there).
+class MemoryListScreen extends StatefulWidget {
   const MemoryListScreen({super.key, required this.onMemorySelected});
 
   final ValueChanged<Memory> onMemorySelected;
+
+  @override
+  State<MemoryListScreen> createState() => _MemoryListScreenState();
+}
+
+class _MemoryListScreenState extends State<MemoryListScreen> {
+  final _searchController = TextEditingController();
+  String _query = '';
+  double _minRating = 0;
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  List<Memory> _applyFilters(List<Memory> memories) {
+    return memories.where((memory) {
+      final matchesQuery =
+          _query.isEmpty ||
+          memory.title.toLowerCase().contains(_query) ||
+          memory.note.toLowerCase().contains(_query);
+      return matchesQuery && memory.rating >= _minRating;
+    }).toList();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -47,22 +73,99 @@ class MemoryListScreen extends StatelessWidget {
       );
     }
 
-    return ListView.separated(
-      padding: const EdgeInsets.all(16),
-      itemCount: provider.memories.length,
-      separatorBuilder: (_, _) => const SizedBox(height: 12),
-      itemBuilder: (context, index) {
-        final memory = provider.memories[index];
-        return _MemoryCard(
-          memory: memory,
-          onOpenDetail: () => Navigator.of(context).push(
-            MaterialPageRoute(
-              builder: (_) => MemoryDetailScreen(memoryId: memory.id),
+    final filtered = _applyFilters(provider.memories);
+
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+          child: TextField(
+            controller: _searchController,
+            decoration: InputDecoration(
+              hintText: 'Mekan adı veya notta ara...',
+              prefixIcon: const Icon(Icons.search),
+              suffixIcon: _query.isEmpty
+                  ? null
+                  : IconButton(
+                      icon: const Icon(Icons.clear),
+                      onPressed: () {
+                        _searchController.clear();
+                        setState(() => _query = '');
+                      },
+                    ),
             ),
+            onChanged: (value) =>
+                setState(() => _query = value.trim().toLowerCase()),
           ),
-          onShowOnMap: () => onMemorySelected(memory),
-        );
-      },
+        ),
+        SizedBox(
+          height: 36,
+          child: ListView(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            scrollDirection: Axis.horizontal,
+            children: [
+              _RatingFilterChip(
+                label: 'Tümü',
+                selected: _minRating == 0,
+                onSelected: () => setState(() => _minRating = 0),
+              ),
+              for (final threshold in const [3.0, 4.0, 5.0])
+                Padding(
+                  padding: const EdgeInsets.only(left: 8),
+                  child: _RatingFilterChip(
+                    label: '${threshold.toInt()}★+',
+                    selected: _minRating == threshold,
+                    onSelected: () => setState(() => _minRating = threshold),
+                  ),
+                ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 8),
+        Expanded(
+          child: filtered.isEmpty
+              ? const Center(child: Text('Aramanla eşleşen bir anı yok.'))
+              : ListView.separated(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                  itemCount: filtered.length,
+                  separatorBuilder: (_, _) => const SizedBox(height: 12),
+                  itemBuilder: (context, index) {
+                    final memory = filtered[index];
+                    return _MemoryCard(
+                      memory: memory,
+                      onOpenDetail: () => Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) =>
+                              MemoryDetailScreen(memoryId: memory.id),
+                        ),
+                      ),
+                      onShowOnMap: () => widget.onMemorySelected(memory),
+                    );
+                  },
+                ),
+        ),
+      ],
+    );
+  }
+}
+
+class _RatingFilterChip extends StatelessWidget {
+  const _RatingFilterChip({
+    required this.label,
+    required this.selected,
+    required this.onSelected,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    return ChoiceChip(
+      label: Text(label),
+      selected: selected,
+      onSelected: (_) => onSelected(),
     );
   }
 }

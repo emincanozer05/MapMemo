@@ -48,6 +48,12 @@ kullanıcının `memories` koleksiyonuna yeniden abone olur (`app.dart`).
 "Kaydedilenler" listesinden bir anıya dokunulduğunda `GlobalKey` üzerinden
 haritaya erişip kamerayı o konuma taşıyabiliyor (`focusOnMemory`).
 
+`ConnectivityProvider` (`core/connectivity/`) auth'tan bağımsız, uygulama
+ömrü boyunca yaşayan bir singleton: cihazın bağlantı durumunu izler ve
+`HomeShell` çevrimdışıyken üstte bir uyarı şeridi gösterir. Firestore zaten
+çevrimdışıyken önbellekten okuyup yazmaları kuyruğa aldığı için bu sadece
+bir bilgilendirme; asıl senkronizasyonu Firestore SDK'sı kendisi yapıyor.
+
 ## Paketler (`pubspec.yaml`)
 
 | Paket | Amaç |
@@ -65,6 +71,8 @@ haritaya erişip kamerayı o konuma taşıyabiliyor (`focusOnMemory`).
 | `uuid` | Mekan/medya için benzersiz kimlikler |
 | `intl` | Tarih biçimlendirme |
 | `permission_handler` | Kamera/galeri/konum izin akışları |
+| `firebase_app_check` | Sahte/otomasyon isteklerine karşı backend doğrulaması |
+| `connectivity_plus` | Çevrimdışı uyarı şeridi için bağlantı durumu |
 | `mocktail` (dev) | Use case / repository testleri |
 
 ## Kurulum
@@ -133,7 +141,24 @@ veya Firebase CLI kuruluysa şu şekilde deploy edebilirsiniz:
 firebase deploy --only firestore:rules,storage:rules
 ```
 
-### 6. Çalıştırma
+### 6. Firebase App Check
+
+`main.dart`, debug derlemelerde `AndroidDebugProvider`/`AppleDebugProvider`,
+release derlemelerde ise Play Integrity / App Attest kullanacak şekilde
+`FirebaseAppCheck.instance.activate(...)` çağrısını zaten yapıyor. Bunu
+backend tarafında etkinleştirmek için:
+
+1. Firebase Console → **App Check** → uygulamanızı kaydedin (Android için
+   Play Integrity, iOS için App Attest sağlayıcısını seçin).
+2. Yerelde debug modda çalıştırdığınızda konsola bir **debug token**
+   basılır; bu token'ı Firebase Console → App Check → uygulama → "Manage
+   debug tokens" kısmına ekleyin, yoksa yerel derlemeleriniz reddedilir.
+3. Sağlayıcılar kayıtlı ve debug token eklenmiş olduğunu doğruladıktan
+   **sonra** Firestore/Storage için App Check zorunluluğunu (enforcement)
+   açın — aksi halde henüz kaydolmamış istemciler tüm isteklerde
+   reddedilir.
+
+### 7. Çalıştırma
 
 ```bash
 flutter run   # bağlı bir Android/iOS cihaz veya emülatör ile
@@ -159,4 +184,9 @@ flutter test
    — listeden veya haritadaki markera dokununca açılır; düzenlemede
    fotoğraf/video ekleme-çıkarma da desteklenir (Storage'daki dosyalar
    silme/değiştirmede otomatik temizlenir)
-7. ⏭️ Firebase App Check, offline önbellekleme, arama/filtreleme gibi iyileştirmeler
+7. ✅ İyileştirmeler:
+   - Kaydedilenler listesinde arama (ad/not) + minimum puan filtresi
+   - Çevrimdışı farkındalığı: Firestore önbellekleme açıkça yapılandırıldı,
+     `ConnectivityProvider` bağlantı yokken bir uyarı şeridi gösteriyor
+   - Firebase App Check (`main.dart`'ta debug/prod sağlayıcılarıyla
+     etkinleştirildi; backend tarafı için Console adımları yukarıda)

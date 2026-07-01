@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import 'core/connectivity/connectivity_provider.dart';
 import 'core/di/service_locator.dart';
 import 'core/theme/app_theme.dart';
 import 'features/auth/presentation/providers/auth_provider.dart';
@@ -15,6 +16,9 @@ class MapMemoApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider<AuthProvider>(create: (_) => sl<AuthProvider>()),
+        ChangeNotifierProvider<ConnectivityProvider>(
+          create: (_) => sl<ConnectivityProvider>(),
+        ),
         // MemoryProvider re-subscribes to Firestore whenever the signed-in
         // user changes (see MemoryProvider.updateUser).
         ChangeNotifierProxyProvider<AuthProvider, MemoryProvider>(

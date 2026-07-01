@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../../../core/connectivity/connectivity_provider.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../map/presentation/screens/map_screen.dart';
 import '../../../memory/domain/entities/memory.dart';
@@ -39,6 +40,7 @@ class _HomeShellState extends State<HomeShell> {
   @override
   Widget build(BuildContext context) {
     final user = context.watch<AuthProvider>().user;
+    final isOnline = context.watch<ConnectivityProvider>().isOnline;
 
     return Scaffold(
       appBar: AppBar(
@@ -59,7 +61,14 @@ class _HomeShellState extends State<HomeShell> {
           ),
         ],
       ),
-      body: IndexedStack(index: _index, children: _screens),
+      body: Column(
+        children: [
+          if (!isOnline) const _OfflineBanner(),
+          Expanded(
+            child: IndexedStack(index: _index, children: _screens),
+          ),
+        ],
+      ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _index,
         onDestinationSelected: (value) => setState(() => _index = value),
@@ -73,6 +82,32 @@ class _HomeShellState extends State<HomeShell> {
             icon: Icon(Icons.bookmark_outline),
             selectedIcon: Icon(Icons.bookmark),
             label: 'Kayıtlarım',
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _OfflineBanner extends StatelessWidget {
+  const _OfflineBanner();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      color: Colors.amber.shade100,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Row(
+        children: [
+          Icon(Icons.cloud_off, size: 18, color: Colors.amber.shade900),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              'Çevrimdışısın. Kayıtlı anılarını görebilirsin; '
+              'yeni değişiklikler bağlantı gelince eşitlenecek.',
+              style: TextStyle(fontSize: 12, color: Colors.amber.shade900),
+            ),
           ),
         ],
       ),

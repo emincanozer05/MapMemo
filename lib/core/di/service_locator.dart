@@ -22,6 +22,7 @@ import '../../features/memory/domain/usecases/delete_memory.dart';
 import '../../features/memory/domain/usecases/update_memory.dart';
 import '../../features/memory/domain/usecases/watch_memories.dart';
 import '../../features/memory/presentation/providers/memory_provider.dart';
+import '../connectivity/connectivity_provider.dart';
 
 final GetIt sl = GetIt.instance;
 
@@ -34,6 +35,8 @@ void setupServiceLocator() {
   sl.registerLazySingleton<GoogleSignIn>(() => GoogleSignIn.instance);
   sl.registerLazySingleton<FirebaseFirestore>(() => FirebaseFirestore.instance);
   sl.registerLazySingleton<FirebaseStorage>(() => FirebaseStorage.instance);
+
+  sl.registerLazySingleton(() => ConnectivityProvider());
 
   // --- Auth feature ---
   sl.registerLazySingleton<AuthRemoteDataSource>(
